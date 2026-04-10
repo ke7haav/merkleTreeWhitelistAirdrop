@@ -10,7 +10,7 @@ The project includes:
 
 - a mock ERC20 token for local testing
 - an airdrop contract that verifies Merkle proofs
-- an off-chain script to generate leaves, proofs, and the Merkle root
+- off-chain scripts to generate leaves, proofs, and the Merkle root from either hardcoded data or a CSV file
 - a Hardhat test suite covering success paths and important failure cases
 
 ## Features
@@ -21,7 +21,7 @@ The project includes:
 - double-claim prevention with on-chain tracking
 - custom errors for clear and gas-efficient reverts
 - safe token transfers via `SafeERC20`
-- off-chain Merkle generation script using `merkletreejs` and `keccak256`
+- off-chain Merkle generation scripts using `merkletreejs` and `keccak256`
 - JavaScript Hardhat tests with both happy-path and edge-case coverage
 
 ## Project Structure
@@ -33,6 +33,8 @@ contracts/
 
 scripts/
   generateMerkle.js
+  generateMerkleFromCSV.js
+  sample-whitelist.csv
 
 test/
   MerkleAirdrop.test.js
@@ -55,7 +57,12 @@ keccak256(abi.encodePacked(account, amount))
 
 Those hashes become the leaves of the Merkle tree. The final root is generated off-chain and passed to the `MerkleAirdrop` contract during deployment.
 
-In this demo project, the whitelist is hardcoded in `scripts/generateMerkle.js` rather than loaded from a CSV or database.
+This project includes two off-chain generation flows:
+
+- `scripts/generateMerkle.js` uses a hardcoded whitelist for quick local demonstration.
+- `scripts/generateMerkleFromCSV.js` reads `address,amount` rows from a CSV file and generates the root and proofs in the same format.
+
+Both scripts use the same hashing rule as the contract and tests, so the generated data stays compatible.
 
 ### 2. On-chain proof verification
 
@@ -118,7 +125,7 @@ OpenZeppelin gives well-audited standard building blocks for ERC20 tokens, owner
 
 - The Merkle root is immutable after deployment. That keeps the contract simple, but it also means the whitelist cannot be updated later.
 - There is no admin recovery function or unclaimed token sweep in this version.
-- The whitelist data in the demo script is hardcoded for simplicity.
+- The hardcoded script is useful for fast demos, but the CSV-based script is closer to how assignment data would usually be prepared.
 - This implementation assumes the airdrop contract is pre-funded with enough ERC20 tokens before claims begin.
 - The project is intentionally minimal and does not include a frontend or deployment pipeline.
 
@@ -154,10 +161,30 @@ Run only the 30-address suite:
 npx hardhat test test/MerkleAirdrop.30Addresses.test.js
 ```
 
-Generate Merkle data off-chain:
+Generate Merkle data from the hardcoded demo dataset:
 
 ```bash
 node scripts/generateMerkle.js
+```
+
+Generate Merkle data from the sample CSV:
+
+```bash
+node scripts/generateMerkleFromCSV.js
+```
+
+Generate Merkle data from your own CSV file:
+
+```bash
+node scripts/generateMerkleFromCSV.js path/to/whitelist.csv
+```
+
+Expected CSV format:
+
+```csv
+address,amount
+0x1111111111111111111111111111111111111111,100
+0x2222222222222222222222222222222222222222,125
 ```
 
 You can also use the npm shortcuts if preferred:
@@ -194,7 +221,7 @@ If this were extended toward production, useful next steps would be:
 
 - deployment scripts for local/testnet environments
 - a frontend or claim page for users
-- support for loading whitelist data from CSV or JSON files
+- support for stronger CSV validation, duplicate detection, and JSON export files
 - admin functionality to recover unclaimed tokens after an expiry period
 - claim windows with start and end timestamps
 - multi-round airdrops or rotating Merkle roots
